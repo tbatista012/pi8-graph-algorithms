@@ -1,4 +1,3 @@
-// frontend/src/App.jsx
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './components/Login'
@@ -34,7 +33,10 @@ function App() {
   }
 
   return (
-    <Router>
+    <Router future={{
+      v7_startTransition: true,
+      v7_relativeSplatPath: true
+    }}>
       <div className="App">
         <Routes>
           <Route 
@@ -42,7 +44,7 @@ function App() {
             element={
               !isAuthenticated ? 
                 <Login onLogin={handleLogin} /> : 
-                <Navigate to="/dashboard" />
+                <Navigate to="/dashboard" replace />
             } 
           />
           <Route 
@@ -50,12 +52,12 @@ function App() {
             element={
               isAuthenticated ? 
                 <Dashboard onLogout={handleLogout} /> : 
-                <Navigate to="/login" />
+                <Navigate to="/login" replace />
             } 
           />
           <Route 
             path="/" 
-            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} 
+            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} 
           />
         </Routes>
       </div>

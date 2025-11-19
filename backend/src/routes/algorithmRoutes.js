@@ -1,10 +1,9 @@
-// backend/src/routes/algorithmRoutes.js - COM HISTÓRICO COMPLETO
 import express from 'express';
 import neo4j from '../utils/neo4j.js';
 
 const router = express.Router();
 
-// Bellman-Ford Algorithm (manter o existente)
+// Bellman-Ford Algorithm - IMPLEMENTAÇÃO COMPLETA
 router.post('/bellman-ford', async (req, res) => {
   try {
     const { vertices, edges, source } = req.body;
@@ -14,9 +13,115 @@ router.post('/bellman-ford', async (req, res) => {
     console.log('   Arestas:', edges);
     console.log('   Origem:', source);
 
-    // ... (manter toda a implementação existente do Bellman-Ford)
+    // Validações
+    if (!vertices || !edges || !source) {
+      return res.status(400).json({
+        error: 'Vertices, edges and source are required'
+      });
+    }
 
-    // Salvar no Neo4j - ATUALIZADO para incluir mais dados
+    if (!Array.isArray(vertices) || !Array.isArray(edges)) {
+      return res.status(400).json({
+        error: 'Vertices and edges must be arrays'
+      });
+    }
+
+    if (!vertices.includes(source)) {
+      return res.status(400).json({
+        error: 'Source vertex must be in vertices array'
+      });
+    }
+
+    // Inicialização
+    const distances = {};
+    const predecessors = {};
+    const steps = [];
+
+    vertices.forEach(vertex => {
+      distances[vertex] = Infinity;
+      predecessors[vertex] = null;
+    });
+    distances[source] = 0;
+
+    // Passo inicial
+    steps.push({
+      iteration: 0,
+      message: 'Inicialização - Distâncias definidas',
+      distances: { ...distances },
+      predecessors: { ...predecessors },
+      changed: [source]
+    });
+
+    const startTime = Date.now();
+
+    // Relaxamento das arestas (V-1 vezes)
+    for (let i = 0; i < vertices.length - 1; i++) {
+      let updated = false;
+      const changedVertices = [];
+
+      edges.forEach(edge => {
+        const { source: from, destination: to, weight } = edge;
+
+        if (distances[from] !== Infinity && 
+            distances[from] + weight < distances[to]) {
+          distances[to] = distances[from] + weight;
+          predecessors[to] = from;
+          updated = true;
+          
+          if (!changedVertices.includes(to)) {
+            changedVertices.push(to);
+          }
+        }
+      });
+
+      steps.push({
+        iteration: i + 1,
+        message: `Iteração ${i + 1} - ${updated ? 'Atualizações realizadas' : 'Sem atualizações'}`,
+        distances: { ...distances },
+        predecessors: { ...predecessors },
+        changed: [...changedVertices]
+      });
+
+      if (!updated) break;
+    }
+
+    // Verificar ciclos negativos
+    let hasNegativeCycle = false;
+    let negativeCycleInfo = null;
+
+    edges.forEach(edge => {
+      const { source: from, destination: to, weight } = edge;
+      
+      if (distances[from] !== Infinity && 
+          distances[from] + weight < distances[to]) {
+        hasNegativeCycle = true;
+        negativeCycleInfo = {
+          from,
+          to,
+          weight
+        };
+      }
+    });
+
+    const executionTime = Date.now() - startTime;
+
+    // Resultado final
+    const result = {
+      distances,
+      predecessors,
+      hasNegativeCycle,
+      negativeCycleInfo,
+      steps,
+      totalIterations: steps.length,
+      executionTime,
+      source
+    };
+
+    if (hasNegativeCycle) {
+      result.negativeCycleMessage = `Ciclo negativo detectado entre ${negativeCycleInfo.from} e ${negativeCycleInfo.to}`;
+    }
+
+    // Salvar no Neo4j
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token && neo4j.isConnected) {
       try {
@@ -37,7 +142,7 @@ router.post('/bellman-ford', async (req, res) => {
              executedAt: datetime()
            })`,
           {
-            username: 'admin', // Temporário - depois pegaremos do token
+            username: 'admin',
             algorithm: 'Bellman-Ford',
             source: source,
             vertices: JSON.stringify(vertices),
@@ -102,7 +207,6 @@ router.get('/history', async (req, res) => {
         totalIterations: properties.totalIterations,
         executionTime: properties.executionTime,
         executedAt: properties.executedAt,
-        // Dados completos para recarregar
         vertices: JSON.parse(properties.vertices),
         edges: JSON.parse(properties.edges),
         result: JSON.parse(properties.result)
