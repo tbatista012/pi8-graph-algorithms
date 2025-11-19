@@ -10,6 +10,17 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
+// Estilos customizados para as labels das arestas
+const edgeLabelStyle = {
+  fontSize: '14px',
+  fontWeight: 'bold',
+  fill: '#2c3e50',
+  background: 'white',
+  padding: '4px 8px',
+  borderRadius: '4px',
+  border: '2px solid #3498db',
+};
+
 const GraphVisualization = ({ 
   vertices = [], 
   edges = [], 
@@ -72,11 +83,11 @@ const GraphVisualization = ({
         id: `e${edge.source}-${edge.destination}-${index}`,
         source: edge.source,
         target: edge.destination,
-        label: (
-          <div className={`edge-label ${isInCurrentStep ? 'highlight' : ''}`}>
-            {edge.weight}
-          </div>
-        ),
+        label: edge.weight.toString(), // Mostra o peso diretamente
+        labelStyle: edgeLabelStyle,
+        labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
+        labelBgPadding: [4, 8],
+        labelBgBorderRadius: 4,
         style: {
           stroke: isInCurrentStep ? '#e67e22' : '#34495e',
           strokeWidth: isInCurrentStep ? 3 : 2,
@@ -131,18 +142,27 @@ const GraphVisualization = ({
           pathEdge => pathEdge.source === edge.source && pathEdge.target === edge.target
         );
         
-        return {
-          ...edge,
-          style: {
-            ...edge.style,
-            stroke: isShortestPath ? '#27ae60' : edge.style?.stroke,
-            strokeWidth: isShortestPath ? 4 : edge.style?.strokeWidth,
-          },
-          markerEnd: {
-            type: 'arrowclosed',
-            color: isShortestPath ? '#27ae60' : edge.markerEnd?.color,
-          },
-        };
+        if (isShortestPath) {
+          return {
+            ...edge,
+            style: {
+              ...edge.style,
+              stroke: '#27ae60',
+              strokeWidth: 4,
+            },
+            markerEnd: {
+              type: 'arrowclosed',
+              color: '#27ae60',
+            },
+            labelStyle: {
+              ...edgeLabelStyle,
+              fill: '#27ae60',
+              fontWeight: 'bold',
+            }
+          };
+        }
+        
+        return edge;
       });
       
       setEdges(updatedEdges);

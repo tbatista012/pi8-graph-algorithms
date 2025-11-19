@@ -122,45 +122,51 @@ router.post('/bellman-ford', async (req, res) => {
     }
 
     // Salvar no Neo4j
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (token && neo4j.isConnected) {
-      try {
+    // Salvar no Neo4j - SEMPRE salvar (com ou sem login)
+if (neo4j.isConnected) {
+    try {
+        console.log('💾 Tentando salvar no Neo4j...');
         const session = neo4j.getSession();
+        
         await session.run(
-          `MATCH (u:User {username: $username})
-           CREATE (u)-[:EXECUTED]->(r:AlgorithmResult {
-             algorithm: $algorithm,
-             source: $source,
-             vertices: $vertices,
-             edges: $edges,
-             verticesCount: $verticesCount,
-             edgesCount: $edgesCount,
-             result: $result,
-             hasNegativeCycle: $hasNegativeCycle,
-             totalIterations: $totalIterations,
-             executionTime: $executionTime,
-             executedAt: datetime()
-           })`,
-          {
-            username: 'admin',
-            algorithm: 'Bellman-Ford',
-            source: source,
-            vertices: JSON.stringify(vertices),
-            edges: JSON.stringify(edges),
-            verticesCount: vertices.length,
-            edgesCount: edges.length,
-            result: JSON.stringify(result),
-            hasNegativeCycle: hasNegativeCycle,
-            totalIterations: result.totalIterations,
-            executionTime: result.executionTime
-          }
+            `CREATE (r:AlgorithmResult {
+                algorithm: $algorithm,
+                source: $source,
+                vertices: $vertices,
+                edges: $edges,
+                verticesCount: $verticesCount,
+                edgesCount: $edgesCount,
+                result: $result,
+                hasNegativeCycle: $hasNegativeCycle,
+                totalIterations: $totalIterations,
+                executionTime: $executionTime,
+                executedAt: datetime(),
+                username: $username
+            }) RETURN r`,
+            {
+                algorithm: 'Bellman-Ford',
+                source: source,
+                vertices: JSON.stringify(vertices),
+                edges: JSON.stringify(edges),
+                verticesCount: vertices.length,
+                edgesCount: edges.length,
+                result: JSON.stringify(result),
+                hasNegativeCycle: hasNegativeCycle,
+                totalIterations: result.totalIterations,
+                executionTime: result.executionTime,
+                username: 'guest' // Usuário padrão para testes
+            }
         );
+        
         await session.close();
-        console.log('💾 Resultado salvo no Neo4j');
-      } catch (dbError) {
-        console.log('⚠️ Não foi possível salvar no Neo4j:', dbError.message);
-      }
+        console.log('✅ Resultado SALVO no Neo4j com sucesso!');
+    } catch (dbError) {
+        console.error('❌ ERRO ao salvar no Neo4j:', dbError.message);
+        console.error('Detalhes do erro:', dbError);
     }
+} else {
+    console.log('⚠️ Neo4j não conectado - não foi possível salvar');
+}
 
     console.log('✅ Bellman-Ford executado com sucesso');
     res.json(result);
@@ -186,12 +192,12 @@ router.get('/history', async (req, res) => {
     }
 
     const session = neo4j.getSession();
-    const result = await session.run(
-      `MATCH (:User)-[r:EXECUTED]->(result:AlgorithmResult)
-       RETURN result
-       ORDER BY result.executedAt DESC
-       LIMIT 20`
-    );
+   const result = await session.run(
+  `MATCH (result:AlgorithmResult)
+   RETURN result
+   ORDER BY result.executedAt DESC
+   LIMIT 20`
+);
 
     const history = result.records.map(record => {
       const node = record.get('result');
