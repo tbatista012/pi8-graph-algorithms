@@ -1,4 +1,3 @@
-// frontend/src/components/Login.jsx
 import React, { useState } from 'react'
 import axios from 'axios'
 import './Login.css'
@@ -58,7 +57,7 @@ const Login = ({ onLogin }) => {
               value={credentials.username}
               onChange={handleChange}
               required
-              placeholder="admin"
+              placeholder="Digite seu usuário"
             />
           </div>
           
@@ -70,7 +69,7 @@ const Login = ({ onLogin }) => {
               value={credentials.password}
               onChange={handleChange}
               required
-              placeholder="123"
+              placeholder="Digite sua senha"
             />
           </div>
           
@@ -80,11 +79,6 @@ const Login = ({ onLogin }) => {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
-
-        <div className="login-info">
-          <p><strong>Credenciais de teste:</strong></p>
-          <p>Usuário: <code>admin</code> | Senha: <code>123</code></p>
-        </div>
       </div>
     </div>
   )
